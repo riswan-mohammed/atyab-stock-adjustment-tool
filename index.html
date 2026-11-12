@@ -300,9 +300,10 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       ||sw.branches.filter(function(x){var k=key(x.name);return k&&(k.indexOf(b)>-1||b.indexOf(k)>-1)})[0];
     if(hit)sel.value=String(hit.idx);
   }
+  var noUnit=0;     // items left out because the manual file has no unit for them
   var skipped={};   // codes with a blank quantity in the chosen branch column (menu items)
   function swRows(){
-    skipped={};
+    skipped={};noUnit=0;
     if(!sw)return [];
     if(!sw.multi)return sw.rows;
     var col=$('swbranch').value;
@@ -312,7 +313,9 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     sw.allRows.forEach(function(r){
       var v=r.vals[col];
       if(v===null||v===undefined||txt(v)===''){skipped[r.code]=1;return;}   /* blank quantity = menu item, ignored */
-      out.push({code:r.code,name:r.name,unit:unitMap[r.code]||'',sys:num(v)});
+      var u=unitMap[r.code]||'';
+      if(!u){noUnit++;return;}   /* no unit in the manual file = not a stock item here, left out */
+      out.push({code:r.code,name:r.name,unit:u,sys:num(v)});
     });
     return out;
   }
@@ -340,6 +343,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     mrows.forEach(function(m){
       if(seen[m.code]||done[m.code])return;done[m.code]=1;
       var e=map[m.code];
+      if(sw.multi&&!e.unit)return;
       if(skipped[m.code]&&e.qty===0)return;   /* blank in SOFTWEAR and nothing counted: nothing to adjust */
       result.push({code:m.code,name:e.name,unit:e.unit,sys:0,man:e.qty,diff:r4(e.qty),
         remark:skipped[m.code]?'No quantity in SOFTWEAR for this branch, system taken as 0':'Not in SOFTWEAR report, system taken as 0'});
@@ -379,7 +383,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       notice.hidden=false;
     }
     dl.disabled=false;
-    info.textContent=$('branch').value+' · '+(($('onlydiff').checked)?nd:result.length)+' rows in the download';
+    info.textContent=$('branch').value+' · '+(($('onlydiff').checked)?nd:result.length)+' rows in the download'+(noUnit?' · '+noUnit+' items without a unit in the manual file left out':'');
     drawTable();
   }
   function drawTable(){
@@ -477,13 +481,34 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   var downloads=null;
   if(window.claude&&claude.use){claude.use('downloads').then(function(d){downloads=d;}).catch(function(){});}
   $('download').addEventListener('click',async function(){
-    var rows=result.filter(function(r){return !$('onlydiff').checked||r.diff!==0});
-    var aoa=[['ITEM CODE','ITEM NAME','UNIT','QUANTITY']];
-    rows.forEach(function(r){aoa.push([r.code,r.name,r.unit,r.diff]);});
+    /* Sheet 2: VIEWING FILE with every item. Sheet 1: UPLOADING FILE, whose quantity is a formula pointing at the DIFFER column of the viewing sheet, so a correction to MANUAL there flows into the upload sheet. */
+    var VN='VIEWING FILE';
+    var vrow={};   /* result index -> row number in the viewing sheet */
+    var vaoa=[['ITEM CODE','ITEM NAME','UNIT','SOFTWEAR','MANUAL','DIFFER']];
+    result.forEach(function(r,i){vaoa.push([r.code,r.name,r.unit,r.sys,r.man,r.diff]);vrow[i]=vaoa.length;});
+    var wsv=XLSX.utils.aoa_to_sheet(vaoa);
+    for(var i=1;i<vaoa.length;i++){
+      var n=i+1,cv=wsv['A'+n];if(cv){cv.t='s';cv.z='@';}
+      wsv['F'+n]={t:'n',f:'ROUND(E'+n+'-D'+n+',4)',v:vaoa[i][5]};
+    }
+    wsv['!cols']=[{wch:12},{wch:50},{wch:10},{wch:14},{wch:14},{wch:14}];
+    wsv['!autofilter']={ref:'A1:F'+vaoa.length};
+
+    var aoa=[['ITEM CODE','ITEM NAME','UNIT','QUANTITY']];   /* values only, used for the copy-paste fallback */
+    var ref=[];
+    result.forEach(function(r,i){
+      if($('onlydiff').checked&&r.diff===0)return;
+      aoa.push([r.code,r.name,r.unit,r.diff]);ref.push(vrow[i]);
+    });
     var ws=XLSX.utils.aoa_to_sheet(aoa);
-    for(var i=1;i<aoa.length;i++){var c=ws['A'+(i+1)];if(c){c.t='s';c.z='@';}}
+    for(var k=1;k<aoa.length;k++){
+      var m=k+1,c=ws['A'+m];if(c){c.t='s';c.z='@';}
+      ws['D'+m]={t:'n',f:"'"+VN+"'!F"+ref[k-1],v:aoa[k][3]};
+    }
     ws['!cols']=[{wch:12},{wch:50},{wch:10},{wch:14}];
-    var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'UPLOADING FILE');
+    var wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'UPLOADING FILE');
+    XLSX.utils.book_append_sheet(wb,wsv,VN);
     var out=XLSX.write(wb,{bookType:'xlsx',type:'array'});
     var d=new Date(),p=function(n){return String(n).padStart(2,'0')};
     var name='stock-adjustment_'+$('branch').value.replace(/[^\w-]+/g,'_')+'_'+d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'.xlsx';
