@@ -1,90 +1,174 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Stock Adjustment Tool</title>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Atyab Stock Tools</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-/* Layout: one working column. Two upload cards, a settings row, result summary, then a scrollable table with a sticky download bar. */
 :root{
-  --bg:#f4f6f8; --surface:#ffffff; --surface2:#eef1f5; --line:#d9dfe7;
-  --fg:#16202c; --muted:#5b6878; --accent:#0e6b73; --accent-fg:#ffffff; --accent-soft:#dcf0f1;
-  --pos:#0b7a3e; --neg:#b3261e; --warn:#8a5a00; --warn-soft:#fbeccb;
-  --font:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --bg:#f2f5f8; --surface:#ffffff; --surface2:#edf1f5; --line:#dbe2ea;
+  --fg:#14202b; --muted:#5a6a7b; --accent:#0e6b73; --accent-fg:#ffffff; --accent-soft:#dcf0f1;
+  --pos:#0b7a3e; --pos-soft:#dff3e7; --neg:#b3261e; --neg-soft:#fbe4e2; --warn:#8a5a00; --warn-soft:#fbeccb;
+  --shadow:0 1px 2px rgba(16,32,44,.06),0 6px 18px rgba(16,32,44,.05);
+  --font:'IBM Plex Sans','Noto Sans Malayalam','Nirmala UI',system-ui,-apple-system,'Segoe UI',sans-serif;
   --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#0f151c; --surface:#171f29; --surface2:#1f2935; --line:#2b3745;
+  --bg:#0d131a; --surface:#16202a; --surface2:#1e2a37; --line:#2a3745;
   --fg:#e6ecf3; --muted:#93a1b3; --accent:#4cc3cc; --accent-fg:#06262a; --accent-soft:#143a3f;
-  --pos:#5fd28b; --neg:#ff8a80; --warn:#f2c35c; --warn-soft:#3a2e12; color-scheme:dark}}
+  --pos:#5fd28b; --pos-soft:#123522; --neg:#ff8a80; --neg-soft:#3b1a18; --warn:#f2c35c; --warn-soft:#3a2e12;
+  --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0f151c; --surface:#171f29; --surface2:#1f2935; --line:#2b3745;
+  --bg:#0d131a; --surface:#16202a; --surface2:#1e2a37; --line:#2a3745;
   --fg:#e6ecf3; --muted:#93a1b3; --accent:#4cc3cc; --accent-fg:#06262a; --accent-soft:#143a3f;
-  --pos:#5fd28b; --neg:#ff8a80; --warn:#f2c35c; --warn-soft:#3a2e12; color-scheme:dark}
+  --pos:#5fd28b; --pos-soft:#123522; --neg:#ff8a80; --neg-soft:#3b1a18; --warn:#f2c35c; --warn-soft:#3a2e12;
+  --shadow:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25); color-scheme:dark}
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:14px;line-height:1.45;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 96px}
-.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:14px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 110px}
+.hero{background:linear-gradient(135deg,#0e6b73,#073c41);margin:0 calc(-1*max(16px,env(safe-area-inset-left,0px)));padding:26px max(16px,env(safe-area-inset-left,0px)) 64px;color:#fff}
+.hero-in{max-width:1100px;margin:0 auto;display:flex;gap:14px;align-items:center}
+.logo{flex:none;width:46px;height:46px;border-radius:12px;background:rgba(255,255,255,.16);display:grid;place-items:center}
+.logo svg{width:26px;height:26px}
 h1{font-size:22px;font-weight:600;margin:0;letter-spacing:-.01em;text-wrap:balance}
-.sub{color:var(--muted);margin:4px 0 0;max-width:68ch}
+.sub{margin:3px 0 0;max-width:72ch;opacity:.88;font-size:13.5px}
+.wrap{max-width:1100px;margin:-40px auto 0;display:flex;flex-direction:column;gap:16px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.step{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--muted);box-shadow:var(--shadow);min-width:0;transition:border-color .2s,color .2s}
+.step i{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:600;font-size:13px;background:var(--surface2)}
+.step b{font-weight:600;font-size:13px;display:block;line-height:1.25}
+.step small{display:block;font-size:12px;opacity:.85;line-height:1.25}
+.step.active{border-color:var(--accent);color:var(--fg)}
+.step.active i{background:var(--accent);color:var(--accent-fg)}
+.step.done{color:var(--fg)}
+.step.done i{background:var(--pos);color:#fff;font-size:0}
+.step.done i::before{content:"\2713";font-size:14px}
+@media(max-width:600px){.step{padding:8px;gap:8px}.step small{display:none}.step b{font-size:12px}}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:760px){.grid2{grid-template-columns:1fr}}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
-.card h2{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 10px}
-.drop{display:flex;flex-direction:column;gap:4px;align-items:flex-start;border:1.5px dashed var(--line);border-radius:6px;padding:16px;cursor:pointer;background:var(--surface2);transition:border-color .15s,background .15s}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0;box-shadow:var(--shadow)}
+.card h2{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 12px}
+.drop{position:relative;display:flex;gap:14px;align-items:center;border:1.5px dashed var(--line);border-radius:12px;padding:18px;cursor:pointer;background:var(--surface2);transition:border-color .15s,background .15s,transform .15s}
+.drop svg{flex:none;width:34px;height:34px;color:var(--accent)}
 .drop:hover,.drop.over,.drop:focus-within{border-color:var(--accent);background:var(--accent-soft)}
+.drop.over{transform:scale(1.01)}
 .drop input{position:absolute;width:1px;height:1px;opacity:0}
-.drop b{font-weight:600}
-.drop span{color:var(--muted);font-size:13px}
-.drop.ok{border-style:solid;border-color:var(--accent)}
-.meta{margin-top:10px;color:var(--muted);font-size:13px;overflow-wrap:anywhere}
-.meta strong{color:var(--fg);font-weight:500}
+.drop .dt b{display:block;font-weight:600}
+.drop .dt small{display:block;color:var(--muted);font-size:13px}
+.drop .t-ok{display:none}
+.drop.ok{border-style:solid;border-color:var(--accent);background:var(--accent-soft)}
+.drop.ok .t-idle{display:none}
+.drop.ok .t-ok{display:block}
+.meta{margin-top:10px;color:var(--muted);font-size:13px;overflow-wrap:anywhere;padding:8px 10px;border-radius:8px;background:var(--surface2)}
+.meta.ok{color:var(--fg);background:var(--pos-soft)}
+.meta.ok::before{content:"\2713  ";color:var(--pos);font-weight:700}
+.meta.err{color:var(--neg);background:var(--neg-soft)}
 .row{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:flex-end}
-label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:500}
-select,input[type=search]{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:200px}
-select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.chk{display:flex;gap:8px;align-items:center;color:var(--fg);font-size:13px;padding-bottom:8px}
-.chk input{width:16px;height:16px;accent-color:var(--accent)}
-.btn{font:inherit;font-weight:600;border:0;border-radius:6px;padding:10px 18px;background:var(--accent);color:var(--accent-fg);cursor:pointer}
+label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;min-width:220px;flex:1 1 220px;max-width:380px}
+select,input[type=search]{font:inherit;font-size:14px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:42px;text-transform:none;letter-spacing:0;font-weight:400}
+select:focus-visible,input[type=search]:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select:disabled{opacity:.55}
+label.chk{display:flex;gap:8px;align-items:center;font-size:13.5px;cursor:pointer;padding:10px 0}
+label.chk input{width:18px;height:18px;accent-color:var(--accent)}
+.hint{display:flex;gap:14px;align-items:center;color:var(--muted);border-style:dashed;box-shadow:none}
+.hint svg{flex:none;width:36px;height:36px;color:var(--accent);opacity:.7}
+.hint b{color:var(--fg);display:block}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px}
+.stat{padding:12px 14px;border-radius:12px;background:var(--surface2);border:1px solid var(--line)}
+.stat b{display:block;font-size:26px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat span{font-size:12.5px;color:var(--muted)}
+.stat.neg{background:var(--neg-soft);border-color:transparent}.stat.neg b{color:var(--neg)}
+.stat.pos{background:var(--pos-soft);border-color:transparent}.stat.pos b{color:var(--pos)}
+.stat.warn{background:var(--warn-soft);border-color:transparent}.stat.warn b{color:var(--warn)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.tools{display:inline-flex;gap:4px;background:var(--surface2);padding:4px;border-radius:12px;flex-wrap:wrap}
+.btn{font:inherit;font-weight:600;font-size:14px;border:0;border-radius:10px;padding:10px 18px;min-height:42px;cursor:pointer;background:var(--accent);color:var(--accent-fg);display:inline-flex;align-items:center;gap:8px;transition:filter .15s,opacity .15s}
+.btn:hover:not(:disabled){filter:brightness(1.08)}
 .btn:disabled{opacity:.4;cursor:not-allowed}
-.btn.ghost{background:var(--surface2);color:var(--fg);font-weight:500;border:1px solid var(--line);padding:6px 12px}
-.btn.ghost[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--fg)}
-.stats{display:flex;flex-wrap:wrap;gap:10px 28px}
-.stat{display:flex;flex-direction:column}
-.stat b{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
-.stat span{font-size:12px;color:var(--muted)}
-.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
-.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.tablewrap{overflow:auto;max-height:560px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
-table{border-collapse:collapse;width:100%;min-width:760px}
-th{position:sticky;top:0;background:var(--surface2);text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
-td{padding:6px 10px;border-bottom:1px solid var(--line);vertical-align:top}
-tr:last-child td{border-bottom:0}
+.btn.ghost{background:transparent;color:var(--muted);padding:8px 14px;min-height:36px;font-weight:500}
+.btn.ghost[aria-pressed="true"]{background:var(--surface);color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.12);font-weight:600}
+.btn svg{width:18px;height:18px}
+#q{flex:1 1 220px;max-width:340px;min-width:0}
+.tablewrap{border:1px solid var(--line);border-radius:14px;background:var(--surface);overflow:auto;max-height:62vh;box-shadow:var(--shadow)}
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:13.5px}
+th{position:sticky;top:0;z-index:2;background:var(--surface2);text-align:left;font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:var(--accent-soft)}
 td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
-td.code{font-family:var(--mono);font-size:13px;white-space:nowrap}
-td.diff{font-weight:600}
-.pos{color:var(--pos)} .neg{color:var(--neg)} .zero{color:var(--muted);font-weight:400}
-.tag{display:inline-block;font-size:12px;background:var(--warn-soft);color:var(--warn);border-radius:4px;padding:1px 6px}
-.msg{padding:10px 12px;border-radius:6px;background:var(--warn-soft);color:var(--warn);font-size:13px}
-.empty{padding:28px 16px;color:var(--muted);text-align:center}
-.dl{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
+td.code,th:first-child{position:sticky;left:0;background:var(--surface)}
+th:first-child{z-index:3;background:var(--surface2)}
+td.code{font-family:var(--mono);font-size:13px;white-space:nowrap;z-index:1}
+tbody tr:hover td.code{background:var(--accent-soft)}
+.stk td:nth-child(2){min-width:200px}
+.chip{display:inline-block;min-width:54px;text-align:center;padding:2px 10px;border-radius:999px;font-weight:600;font-size:13px}
+.chip.pos{background:var(--pos-soft);color:var(--pos)}
+.chip.neg{background:var(--neg-soft);color:var(--neg)}
+.chip.zero{color:var(--muted);font-weight:400}
+.pos{color:var(--pos)} .neg{color:var(--neg)} .zero{color:var(--muted)}
+.tag{display:inline-block;font-size:12px;background:var(--warn-soft);color:var(--warn);border-radius:6px;padding:2px 8px}
+.msg{padding:10px 14px;border-radius:10px;background:var(--warn-soft);color:var(--warn);font-size:13px;font-weight:500}
+.empty{padding:32px 16px;color:var(--muted);text-align:center}
+.dl{position:fixed;left:0;right:0;bottom:0;z-index:10;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line);
   padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
-  display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap}
-.dl .info{color:var(--muted);font-size:13px}
+  display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap}
+.dl .info{color:var(--muted);font-size:13px;text-align:center;text-wrap:balance}
+.dl .btn{padding:11px 22px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+.sm{display:none}
+.mu{display:none;color:var(--muted);font-size:11.5px}
+@media(max-width:600px){.mu{display:block}.stk th:nth-child(3),.stk td:nth-child(3){display:none}.stk th,.stk td{padding:8px 6px}.stk th{letter-spacing:0;font-size:10.5px}.stk td:nth-child(2){min-width:86px}.stk table{font-size:12.5px}.lg{display:none}.sm{display:inline}.chip{min-width:44px;padding:2px 7px}}
+.tabs{display:flex;gap:6px;background:var(--surface);border:1px solid var(--line);padding:5px;border-radius:14px;box-shadow:var(--shadow)}
+.tab{flex:1;font:inherit;font-weight:600;font-size:14px;padding:10px 14px;min-height:44px;border:0;border-radius:10px;background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s,color .15s}
+.tab svg{width:18px;height:18px;flex:none}
+.tab:hover{color:var(--fg)}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-fg)}
+.tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(max-width:520px){.tab{font-size:13px;padding:8px;gap:6px}.tab svg{display:none}}
+.panel{display:flex;flex-direction:column;gap:16px}
+.sec{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:6px 0 0}
+.ct{width:100%;border-collapse:collapse;font-size:13px}
+.ct td{border:1px solid var(--line);padding:6px 9px;background:transparent}
+.ct td.c{text-align:center}
+.ct tr.title td{font-weight:700;font-size:15px;text-align:center;background:var(--surface2)}
+.ct tr.head td{background:#1e293b;color:#fff;font-weight:700;text-align:center}
+.ct tr.tot td{background:var(--surface2);font-weight:700}
+.ct tr.gap td{border:0;height:10px;background:transparent}
+.ct tbody tr:hover td{background:transparent}
+.ct tbody tr:not(.title):not(.head):not(.tot):not(.gap):hover td{background:var(--accent-soft)}
 [hidden]{display:none!important}
 </style>
 
+</head>
+<body>
+<header class="hero">
+  <div class="hero-in">
+    <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3.5 7.5v9L12 21l8.5-4.5v-9L12 3Z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></svg></div>
+    <div>
+      <h1 id="h1">Stock Adjustment Tool</h1>
+      <p class="sub" id="hsub">Compare the manual stock count with the SOFTWEAR system stock and download the upload sheet. Quantity = manual count − SOFTWEAR stock. Files stay in your browser and are not sent anywhere.</p>
+    </div>
+  </div>
+</header>
+
 <div class="wrap">
-  <header>
-    <h1>Stock Adjustment Tool</h1>
-    <p class="sub">Compare the manual stock count with the SOFTWEAR system stock and download the upload sheet. Quantity = manual count − SOFTWEAR stock. Files stay in your browser and are not sent anywhere.</p>
-  </header>
+  <div class="tabs" role="tablist" aria-label="Tools">
+    <button class="tab" role="tab" id="tab-stock" data-tab="stock" aria-selected="true" aria-controls="panel-stock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 3.5 7.5v9L12 21l8.5-4.5v-9L12 3Z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></svg>Stock Adjustment</button>
+    <button class="tab" role="tab" id="tab-conv" data-tab="conv" aria-selected="false" tabindex="-1" aria-controls="panel-conv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h13M13 3l4 4-4 4M20 17H7M11 13l-4 4 4 4"/></svg>Consumption → RESULT</button>
+  </div>
+  <div class="panel" id="panel-stock" role="tabpanel" aria-labelledby="tab-stock">
+  <nav class="steps" aria-label="Progress">
+    <div class="step active" id="st1"><i>1</i><div><b>Manual count</b><small>Branch sheets</small></div></div>
+    <div class="step" id="st2"><i>2</i><div><b>SOFTWEAR report</b><small>System stock</small></div></div>
+    <div class="step" id="st3"><i>3</i><div><b>Branch</b><small>Review and download</small></div></div>
+  </nav>
 
   <div class="grid2">
     <section class="card" aria-labelledby="h-manual">
       <h2 id="h-manual">1 · Manual stock taking (all branches)</h2>
       <label class="drop" id="drop-manual">
         <input type="file" id="file-manual" accept=".xlsx,.xlsm,.xls,.csv">
-        <b>Choose the daily manual stock file</b>
-        <span>Excel workbook with one sheet per branch, e.g. stock_2026-11-10.xlsx. Drop it here or click.</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5M12 17v-6M9.5 13.5 12 11l2.5 2.5"/></svg>
+        <span class="dt"><b class="t-idle">Choose the daily manual stock file</b><b class="t-ok">Replace the file</b><small>Excel workbook with one sheet per branch, e.g. stock_2026-11-10.xlsx. Drop it here or click.</small></span>
       </label>
       <div class="meta" id="meta-manual">No file yet.</div>
     </section>
@@ -92,8 +176,8 @@ td.diff{font-weight:600}
       <h2 id="h-sw">2 · SOFTWEAR stock report (all branches or one branch)</h2>
       <label class="drop" id="drop-sw">
         <input type="file" id="file-sw" accept=".xls,.xlsx,.csv,.xml">
-        <b>Choose the SOFTWEAR report</b>
-        <span>The multiple branch wise stock report from SOFTWEAR (a single-branch report also works). Drop it here or click.</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5M12 17v-6M9.5 13.5 12 11l2.5 2.5"/></svg>
+        <span class="dt"><b class="t-idle">Choose the SOFTWEAR report</b><b class="t-ok">Replace the file</b><small>The multiple branch wise stock report from SOFTWEAR (a single-branch report also works). Drop it here or click.</small></span>
       </label>
       <div class="meta" id="meta-sw">No file yet.</div>
     </section>
@@ -113,6 +197,11 @@ td.diff{font-weight:600}
     <div id="notice" style="margin-top:12px" hidden></div>
   </section>
 
+  <section class="card hint" id="hint">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><path d="M3.5 9.5h17M9 9.5V20"/></svg>
+    <div><b>Your comparison will appear here</b>Upload both files and choose a branch to see the differences and enable the download.</div>
+  </section>
+
   <section id="result" hidden aria-live="polite">
     <div class="card" style="margin-bottom:14px">
       <div class="stats" id="stats"></div>
@@ -125,9 +214,9 @@ td.diff{font-weight:600}
       </div>
       <input type="search" id="q" placeholder="Search code or name" aria-label="Search code or name">
     </div>
-    <div class="tablewrap">
+    <div class="tablewrap stk">
       <table>
-        <thead><tr><th>Code</th><th>Item name</th><th>Unit</th><th class="n">SOFTWEAR</th><th class="n">Manual</th><th class="n">Quantity (diff)</th><th>Check</th></tr></thead>
+        <thead><tr><th>Code</th><th>Item name</th><th>Unit</th><th class="n">SOFTWEAR</th><th class="n">Manual</th><th class="n"><span class="lg">Quantity (diff)</span><span class="sm">Diff</span></th><th>Check</th></tr></thead>
         <tbody id="tbody"></tbody>
       </table>
     </div>
@@ -140,13 +229,41 @@ td.diff{font-weight:600}
       <button class="btn" id="copytsv">Copy table</button>
       <span class="info" id="copymsg" style="color:var(--muted);font-size:13px"></span>
     </div>
-    <textarea id="tsv" readonly rows="6" style="width:100%;font-family:var(--mono);font-size:12px;background:var(--surface2);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:8px" aria-label="Table text"></textarea>
+    <textarea id="tsv" readonly rows="6" style="width:100%;font-family:var(--mono);font-size:12px;background:var(--surface2);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:8px" aria-label="Table text"></textarea>
   </section>
-</div>
 
 <div class="dl">
   <span class="info" id="dlinfo">Upload both files and pick the branch to enable the download.</span>
-  <button class="btn" id="download" disabled>Download Excel</button>
+  <button class="btn" id="download" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 11 12 15.5 16.5 11M5 20h14"/></svg>Download Excel</button>
+</div>
+  </div>
+
+  <div class="panel" id="panel-conv" role="tabpanel" aria-labelledby="tab-conv" hidden>
+    <section class="card" aria-labelledby="h-conv">
+      <h2 id="h-conv">consumption_damage ഫയൽ</h2>
+      <label class="drop" id="c-drop">
+        <input type="file" id="c-file" accept=".xlsx">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5M12 17v-6M9.5 13.5 12 11l2.5 2.5"/></svg>
+        <span class="dt"><b class="t-idle">ഇവിടെ ക്ലിക്ക് ചെയ്യുക അല്ലെങ്കിൽ ഫയൽ ഡ്രോപ്പ് ചെയ്യുക</b><b class="t-ok">ഫയൽ മാറ്റുക</b><small>consumption_damage_....xlsx</small></span>
+      </label>
+      <div class="meta" id="c-msg">ഫയൽ ഒന്നും ഇല്ല.</div>
+    </section>
+
+    <section class="card hint" id="c-hint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><path d="M3.5 9.5h17M9 9.5V20"/></svg>
+      <div><b>RESULT ഇവിടെ കാണാം</b>ഫയൽ അപ്‌ലോഡ് ചെയ്താൽ ഓരോ ബ്രാഞ്ചിന്റെയും Consumption, Damage എന്നിവയുടെ preview വരും, പിന്നെ RESULT ഡൗൺലോഡ് ചെയ്യാം.</div>
+    </section>
+
+    <section id="c-result" hidden aria-live="polite">
+      <div class="card" style="margin-bottom:14px"><div class="stats" id="c-stats"></div></div>
+      <div id="c-preview"></div>
+    </section>
+
+    <div class="dl">
+      <span class="info" id="c-dlinfo">ഫയൽ അപ്‌ലോഡ് ചെയ്താൽ ഡൗൺലോഡ് ലഭ്യമാകും.</span>
+      <button class="btn" id="c-dl" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 11 12 15.5 16.5 11M5 20h14"/></svg>RESULT.xlsx ഡൗൺലോഡ്</button>
+    </div>
+  </div>
 </div>
 
 <script>/*! xlsx.js (C) 2013-present SheetJS -- http://sheetjs.com */
@@ -253,14 +370,14 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       var wb=XLSX.read(buf,{type:'array',raw:true});
       aoa=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:null});
     }
-    var h=-1,ci=1,ni=2,si=3,ui=4,hdr=[],hasSys=false;
+    var h=-1,ci=1,ni=2,si=3,ui=4,hdr=[],hasSys=false,swUnitCol=-1;
     for(var i=0;i<Math.min(aoa.length,10);i++){
       var low=(aoa[i]||[]).map(function(c){return txt(c).toLowerCase()});
       var a=low.indexOf('item code');
       if(a>-1){h=i;ci=a;hdr=aoa[i]||[];
         ni=low.indexOf('item name');if(ni<0)ni=a+1;
         si=low.findIndex(function(x){return x.indexOf('system stock')===0});hasSys=si>-1;if(si<0)si=a+2;
-        ui=low.indexOf('unit');if(ui<0)ui=a+3;break;}
+        var uh=low.findIndex(function(x){return /^(base unit|unit|uom|u\.o\.m)/.test(x)});ui=uh<0?a+3:uh;swUnitCol=uh;break;}
     }
     if(h<0)return null;
     if(!hasSys){
@@ -268,7 +385,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       var branches=[];
       for(var c=ni+1;c<hdr.length;c++){
         var bn=txt(hdr[c]);
-        if(!bn||bn.toLowerCase()==='total'||bn.toLowerCase()==='unit')continue;
+        if(!bn||bn.toLowerCase()==='total'||c===swUnitCol||/^(base unit|unit|uom|u\.o\.m)/i.test(bn))continue;
         branches.push({name:bn,idx:c});
       }
       if(branches.length){
@@ -278,7 +395,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
           if(!cd||cd.toUpperCase()==='TOTAL')continue;
           all.push({code:cd,name:txt(rw[ni]),vals:rw});
         }
-        return {name:fname,multi:true,branches:branches,allRows:all};
+        return {name:fname,multi:true,branches:branches,allRows:all,unitCol:swUnitCol,hdr:hdr};
       }
     }
     var rows=[];
@@ -315,7 +432,8 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       if(v===null||v===undefined||txt(v)===''){skipped[r.code]=1;return;}   /* blank quantity = menu item, ignored */
       var u=unitMap[r.code]||'';
       if(!u){noUnit++;return;}   /* no unit in the manual file = not a stock item here, left out */
-      out.push({code:r.code,name:r.name,unit:u,sys:num(v)});
+      var su=(sw.unitCol>-1)?normUnit(r.vals[sw.unitCol]):'';
+      out.push({code:r.code,name:r.name,unit:su||u,sys:num(v)});
     });
     return out;
   }
@@ -351,7 +469,13 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   }
 
   /* ---------- render ---------- */
-  function render(){
+  function updateSteps(){
+    var done=[!!manual,!!sw,result.length>0],cur=done.indexOf(false);
+    [1,2,3].forEach(function(n){$('st'+n).className='step'+(done[n-1]?' done':(n-1===cur?' active':''));});
+    $('hint').hidden=result.length>0;
+  }
+  function render(){renderCore();updateSteps();}
+  function renderCore(){
     var res=$('result'),dl=$('download'),info=$('dlinfo'),notice=$('notice');
     notice.hidden=true;
     compute();
@@ -370,8 +494,9 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     var nr=result.filter(function(r){return r.remark}).length;
     var swr=swRows(),swn=swr.length;
     $('stats').innerHTML='';
-    [[result.length,'items in the sheet'],[nd,'with a difference'],[result.length-nd,'no difference'],[nr,'need a check']].forEach(function(p){
-      var d=document.createElement('div');d.className='stat';
+    var nneg=result.filter(function(r){return r.diff<0}).length,npos=result.filter(function(r){return r.diff>0}).length;
+    [[result.length,'items in the sheet',''],[nd,'with a difference',''],[nneg,'short (system higher)','neg'],[npos,'over (count higher)','pos'],[nr,'need a check','warn']].forEach(function(p){
+      var d=document.createElement('div');d.className='stat '+(p[2]||'');
       var b=document.createElement('b');b.textContent=p[0];var s=document.createElement('span');s.textContent=p[1];
       d.appendChild(b);d.appendChild(s);$('stats').appendChild(d);
     });
@@ -401,8 +526,8 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     shown.forEach(function(r){
       var tr=document.createElement('tr');
       function cell(t,c){var td=document.createElement('td');td.textContent=t;if(c)td.className=c;tr.appendChild(td);return td;}
-      cell(r.code,'code');cell(r.name);cell(r.unit);cell(fmt(r.sys),'n');cell(fmt(r.man),'n');
-      var d=cell(r.diff>0?'+'+fmt(r.diff):fmt(r.diff),'n diff '+(r.diff>0?'pos':r.diff<0?'neg':'zero'));
+      cell(r.code,'code');var nc=cell(r.name);var mu=document.createElement('small');mu.className='mu';mu.textContent=r.unit;nc.appendChild(mu);cell(r.unit);cell(fmt(r.sys),'n');cell(fmt(r.man),'n');
+      var d=cell('','n diff');var chip=document.createElement('span');chip.className='chip '+(r.diff>0?'pos':r.diff<0?'neg':'zero');chip.textContent=(r.diff>0?'+':'')+fmt(r.diff);d.appendChild(chip);
       var rc=document.createElement('td');
       if(r.remark){var t=document.createElement('span');t.className='tag';t.textContent=r.remark;rc.appendChild(t);}
       tr.appendChild(rc);tb.appendChild(tr);
@@ -418,7 +543,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     inp.addEventListener('change',function(){if(inp.files[0])handler(inp.files[0]);});
   }
   function setMeta(id,html,ok,dropId){
-    var m=$(id);m.innerHTML='';
+    var m=$(id);m.innerHTML='';m.className='meta '+(ok?'ok':'err');
     var s=document.createElement('span');s.textContent=html;m.appendChild(s);
     if(dropId)$(dropId).classList.toggle('ok',!!ok);
   }
@@ -536,4 +661,258 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   });
 })();
 </script>
-</head></html>
+<script>
+(function () {
+'use strict';
+const dropZone = document.getElementById('c-drop');
+const fileInputEl = document.getElementById('c-file');
+const msgEl = document.getElementById('c-msg');
+const DMG_HEAD = ['Date','Classification','Item Name','Unit','Quantity','Settled','Replacement Receipt #','Submitted By'];
+let branches = [], outName = 'RESULT.xlsx', dateRange = '';
+
+dropZone.ondragover = e => { e.preventDefault(); dropZone.classList.add('over'); };
+dropZone.ondragleave = () => dropZone.classList.remove('over');
+dropZone.ondrop = e => { e.preventDefault(); dropZone.classList.remove('over'); if (e.dataTransfer.files[0]) handle(e.dataTransfer.files[0]); };
+fileInputEl.onchange = () => { if (fileInputEl.files[0]) handle(fileInputEl.files[0]); };
+
+const txt = v => {
+  if (v == null) return '';
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (typeof v === 'object') return v.result != null ? String(v.result) : (v.richText ? v.richText.map(r => r.text).join('') : String(v.text ?? ''));
+  return String(v);
+};
+const num = v => { const n = Number(txt(v)); return isNaN(n) ? 0 : n; };
+
+async function handle(file) {
+  msgEl.className = 'meta'; msgEl.textContent = 'വായിക്കുന്നു...';
+  dropZone.classList.remove('ok');
+  document.getElementById('c-result').hidden = true;
+  document.getElementById('c-dl').disabled = true;
+  try {
+    if (typeof ExcelJS === 'undefined') throw new Error('ExcelJS ലോഡ് ആയില്ല — ഇന്റർനെറ്റ് കണക്ഷൻ പരിശോധിക്കുക.');
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(await file.arrayBuffer());
+    branches = [];
+    wb.eachSheet(ws => {
+      if (ws.name.trim().toLowerCase() === 'summary') return;
+      const name = txt(ws.getCell('A1').value).trim();
+      if (!name) return;
+      if (!dateRange) dateRange = txt(ws.getCell('A2').value).trim();
+      // locate CONSUMPTION section
+      let start = -1;
+      for (let r = 1; r <= ws.rowCount; r++) {
+        if (txt(ws.getCell(r, 1).value).toUpperCase().startsWith('CONSUMPTION')) { start = r; break; }
+      }
+      if (start < 0) return;
+      const rows = [];
+      for (let r = start + 2; r <= ws.rowCount; r++) {          // skip section title + header
+        const a = txt(ws.getCell(r, 1).value).trim();
+        if (a.toUpperCase() === 'TOTAL' || a === '') break;
+        rows.push({
+          date: a,
+          cat: txt(ws.getCell(r, 2).value),
+          item: txt(ws.getCell(r, 4).value),
+          unit: txt(ws.getCell(r, 5).value),
+          qty: num(ws.getCell(r, 6).value),
+          rem: txt(ws.getCell(r, 9).value),
+          by: txt(ws.getCell(r, 10).value)
+        });
+      }
+      // DAMAGE section
+      const dmg = [];
+      let ds = -1;
+      for (let r = 1; r <= ws.rowCount; r++) {
+        if (txt(ws.getCell(r, 1).value).trim().toUpperCase() === 'DAMAGE') { ds = r; break; }
+      }
+      if (ds > 0) {
+        for (let r = ds + 2; r <= ws.rowCount; r++) {
+          const a = txt(ws.getCell(r, 1).value).trim();
+          if (a.toUpperCase() === 'TOTAL' || a === '' || a.toLowerCase().startsWith('none')) break;
+          dmg.push({
+            date: a,
+            cat: txt(ws.getCell(r, 2).value),
+            item: txt(ws.getCell(r, 4).value),
+            unit: txt(ws.getCell(r, 5).value),
+            qty: num(ws.getCell(r, 6).value),
+            rem: txt(ws.getCell(r, 9).value),
+            rcpt: txt(ws.getCell(r, 10).value),
+            by: txt(ws.getCell(r, 11).value)
+          });
+        }
+      }
+      branches.push({ name, rows, dmg });
+    });
+    if (!branches.length) throw new Error('Branch sheets കണ്ടെത്തിയില്ല. ശരിയായ consumption_damage ഫയൽ ആണോ?');
+
+    const m = file.name.match(/(\d{4}-\d{2}-\d{2})(?:_(\d{4}-\d{2}-\d{2}))?/);
+    outName = m ? `RESULT_${m[1]}${m[2] && m[2] !== m[1] ? '_to_' + m[2] : ''}.xlsx` : 'RESULT.xlsx';
+    render();
+    msgEl.className = 'meta ok'; msgEl.textContent = file.name + ' വിജയകരമായി വായിച്ചു.';
+    dropZone.classList.add('ok');
+  } catch (e) {
+    msgEl.className = 'meta err'; msgEl.textContent = 'പിശക്: ' + e.message;
+  }
+}
+
+function render() {
+  const totalRows = branches.reduce((s, b) => s + b.rows.length, 0);
+  const totalQty = branches.reduce((s, b) => s + b.rows.reduce((q, r) => q + r.qty, 0), 0);
+  const dmgRows = branches.reduce((s, b) => s + b.dmg.length, 0);
+  document.getElementById('c-stats').innerHTML =
+    `<div class="stat"><b>${branches.length}</b><span>Branches</span></div>
+     <div class="stat"><b>${totalRows}</b><span>Item rows</span></div>
+     <div class="stat"><b>${+totalQty.toFixed(3)}</b><span>Total quantity</span></div>
+     <div class="stat ${dmgRows ? 'neg' : ''}"><b>${dmgRows}</b><span>Damage rows</span></div>`;
+  const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  let h = '<h3 class="sec">Consumption</h3><div class="tablewrap"><table class="ct">';
+  branches.forEach(b => {
+    h += `<tr class="title"><td colspan="7">${esc(b.name)}</td></tr>`;
+    h += '<tr class="head">' + ['Date', 'Category', 'Item Name', 'Unit', 'Quantity', 'Remarks', 'Submitted By'].map(x => `<td>${x}</td>`).join('') + '</tr>';
+    let sum = 0;
+    b.rows.forEach(r => {
+      sum += r.qty;
+      h += `<tr><td class="c">${esc(r.date)}</td><td class="c">${esc(r.cat)}</td><td>${esc(r.item)}</td><td class="c">${esc(r.unit)}</td><td class="c">${r.qty}</td><td>${esc(r.rem)}</td><td>${esc(r.by)}</td></tr>`;
+    });
+    h += `<tr class="tot"><td class="c">TOTAL</td><td></td><td></td><td></td><td class="c">${+sum.toFixed(3)}</td><td></td><td></td></tr>`;
+    h += '<tr class="gap"><td colspan="7"></td></tr>';
+  });
+  h += '</table></div><h3 class="sec" style="margin-top:18px">Damage</h3><div class="tablewrap">';
+  const dBr = branches.filter(b => b.dmg.length);
+  if (!dBr.length) h += '<div class="empty">Damage ഒന്നുമില്ല</div>';
+  else {
+    h += '<table class="ct">';
+    dBr.forEach(b => {
+      h += `<tr class="title"><td colspan="8">${esc(b.name)}</td></tr>`;
+      h += '<tr class="head">' + DMG_HEAD.map(x => `<td>${x}</td>`).join('') + '</tr>';
+      let sum = 0;
+      b.dmg.forEach(r => {
+        sum += r.qty;
+        h += `<tr><td class="c">${esc(r.date)}</td><td class="c">${esc(r.cat)}</td><td>${esc(r.item)}</td><td class="c">${esc(r.unit)}</td><td class="c">${r.qty}</td><td class="c">${esc(r.rem)}</td><td>${esc(r.rcpt)}</td><td>${esc(r.by)}</td></tr>`;
+      });
+      h += `<tr class="tot"><td class="c">TOTAL</td><td></td><td></td><td></td><td class="c">${+sum.toFixed(3)}</td><td></td><td></td><td></td></tr>`;
+      h += '<tr class="gap"><td colspan="8"></td></tr>';
+    });
+    h += '</table>';
+  }
+  h += '</div>';
+  document.getElementById('c-preview').innerHTML = h;
+  document.getElementById('c-result').hidden = false;
+  document.getElementById('c-hint').hidden = true;
+  document.getElementById('c-dlinfo').textContent = branches.length + ' branches · ' + totalRows + ' item rows · ' + dmgRows + ' damage rows ready';
+  document.getElementById('c-dl').disabled = false;
+}
+
+function buildSheet(wb, sheetName, list, head, widths, toRow, centerCols, qtyCol) {
+  const ws = wb.addWorksheet(sheetName);
+  widths.forEach((w, i) => ws.getColumn(i + 1).width = w);
+  const n = head.length;
+  const thin = { style: 'thin' };
+  const border = { top: thin, left: thin, bottom: thin, right: thin };
+  const DARK = 'FF1E293B', LIGHT = 'FFF1F5F9';
+  let r = 1;
+  list.forEach(b => {
+    const t = ws.getRow(r);
+    for (let c = 1; c <= n; c++) {
+      const cell = t.getCell(c);
+      cell.border = border;
+      cell.alignment = { horizontal: centerCols.includes(c) ? 'center' : undefined, vertical: 'middle' };
+    }
+    t.getCell(1).value = b.name;
+    t.getCell(1).font = { name: 'Calibri', size: 13, bold: true, color: { argb: DARK } };
+    t.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+    t.height = 21.95; r++;
+
+    const hd = ws.getRow(r);
+    head.forEach((x, i) => {
+      const cell = hd.getCell(i + 1);
+      cell.value = x;
+      cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DARK } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.border = border;
+    });
+    hd.height = 21.95; r++;
+
+    let sum = 0;
+    b.items.forEach(x => {
+      sum += x.qty;
+      const row = ws.getRow(r);
+      toRow(x).forEach((v, i) => {
+        const cell = row.getCell(i + 1);
+        cell.value = v;
+        cell.font = { name: 'Calibri', size: 11 };
+        cell.border = border;
+        cell.alignment = { horizontal: centerCols.includes(i + 1) ? 'center' : undefined, vertical: 'middle' };
+        if (i + 1 === qtyCol) cell.numFmt = '#,##0.000';
+      });
+      row.height = 21.95; r++;
+    });
+
+    const tr = ws.getRow(r);
+    for (let c = 1; c <= n; c++) {
+      const cell = tr.getCell(c);
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: LIGHT } };
+      cell.border = border;
+      cell.font = { name: 'Calibri', size: 11 };
+      cell.alignment = { horizontal: centerCols.includes(c) ? 'center' : undefined, vertical: 'middle' };
+    }
+    tr.getCell(1).value = 'TOTAL';
+    tr.getCell(1).font = { name: 'Calibri', size: 10, bold: true };
+    tr.getCell(qtyCol).value = +sum.toFixed(3);
+    tr.getCell(qtyCol).numFmt = '#,##0.000';
+    tr.getCell(qtyCol).font = { name: 'Calibri', size: 10, bold: true };
+    tr.height = 21.95; r += 2;
+  });
+}
+
+document.getElementById('c-dl').onclick = async () => {
+  const wb = new ExcelJS.Workbook();
+  buildSheet(wb, 'ALL CONSPESTION',
+    branches.map(b => ({ name: b.name, items: b.rows })),
+    ['Date', 'Category', 'Item Name', 'Unit', 'Quantity', 'Remarks', 'Submitted By'],
+    [24, 10.57, 33.71, 9.43, 12.43, 27.14, 26.29],
+    x => [x.date, x.cat, x.item, x.unit, x.qty, x.rem || null, x.by],
+    [1, 2, 4, 5], 5);
+  buildSheet(wb, 'ALL DAMAGE',
+    branches.filter(b => b.dmg.length).map(b => ({ name: b.name, items: b.dmg })),
+    DMG_HEAD,
+    [24, 26, 33.71, 9.43, 12.43, 10, 22, 22],
+    x => [x.date, x.cat, x.item, x.unit, x.qty, x.rem || null, x.rcpt || null, x.by],
+    [1, 2, 4, 5, 6], 5);
+
+  const buf = await wb.xlsx.writeBuffer();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  a.download = outName;
+  document.body.appendChild(a); a.click(); a.remove();
+};
+})();
+</script>
+<script>
+(function(){
+  var T={
+    stock:['Stock Adjustment Tool','Compare the manual stock count with the SOFTWEAR system stock and download the upload sheet. Quantity = manual count − SOFTWEAR stock. Files stay in your browser and are not sent anywhere.'],
+    conv:['Consumption → RESULT Converter','consumption_damage Excel അപ്‌ലോഡ് ചെയ്യൂ → ഓരോ ബ്രാഞ്ചിന്റെയും Consumption (ALL CONSPESTION), Damage (ALL DAMAGE) എന്നിവ RESULT ഫോർമാറ്റിൽ ഡൗൺലോഡ് ചെയ്യാം.']
+  };
+  var tabs=Array.prototype.slice.call(document.querySelectorAll('.tab'));
+  function show(id,focus){
+    if(!T[id])id='stock';
+    tabs.forEach(function(t){var on=t.getAttribute('data-tab')===id;t.setAttribute('aria-selected',on?'true':'false');t.tabIndex=on?0:-1;if(on&&focus)t.focus();});
+    document.getElementById('panel-stock').hidden=id!=='stock';
+    document.getElementById('panel-conv').hidden=id!=='conv';
+    document.getElementById('h1').textContent=T[id][0];
+    document.getElementById('hsub').textContent=T[id][1];
+    try{history.replaceState(null,'','#'+id);}catch(e){}
+  }
+  tabs.forEach(function(t,i){
+    t.addEventListener('click',function(){show(t.getAttribute('data-tab'));});
+    t.addEventListener('keydown',function(e){
+      var k=e.key,n=-1;
+      if(k==='ArrowRight')n=(i+1)%tabs.length;else if(k==='ArrowLeft')n=(i+tabs.length-1)%tabs.length;
+      if(n>-1){e.preventDefault();show(tabs[n].getAttribute('data-tab'),true);}
+    });
+  });
+  show(location.hash==='#conv'?'conv':'stock');
+})();
+</script>
+</body></html>
